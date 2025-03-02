@@ -5,7 +5,6 @@ on:
     branches:
       - master
 
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -51,9 +50,14 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Build and Push Docker Image
-        run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/plat:latest .
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/plat:latest
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/vite-app:latest
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/vite-app:latest
+          cache-to: type=inline
 
   deploy:
     needs: dockerize
@@ -66,7 +70,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/plat:latest
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/vite-app:latest
             docker stop vite-app || true
             docker rm vite-app || true
-            docker run -d --name plat -p 80:80 --restart always ${{ secrets.DOCKERHUB_USERNAME }}/plat:latest
+            docker run -d --name vite-app -p 80:80 --restart always ${{ secrets.DOCKERHUB_USERNAME }}/vite-app:latest
