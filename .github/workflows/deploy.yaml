@@ -82,6 +82,6 @@ jobs:
             docker rm vite-app || true
             
             # Run new container on port 8080 instead of 80
-            docker run -d --name vite-app -p 8080:80 --restart always ${{ secrets.DOCKERHUB_USERNAME }}/vite-app:latest
+            docker run -d --name vite-app -p 80:80 --restart always ${{ secrets.DOCKERHUB_USERNAME }}/vite-app:latest
             
-            echo "Deployment complete. Application is running on port 8080."
+            echo "Deployment complete. Application is running on port 80."
