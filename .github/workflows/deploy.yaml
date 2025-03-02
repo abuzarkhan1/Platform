@@ -70,7 +70,18 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            # Check what's using port 80 (optional but helpful for debugging)
+            echo "Checking what's using port 80..."
+            sudo lsof -i :80 || true
+            
+            # Pull the latest image
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/vite-app:latest
+            
+            # Stop and remove existing container if it exists
             docker stop vite-app || true
             docker rm vite-app || true
-            docker run -d --name vite-ap -p 80:80 --restart always ${{ secrets.DOCKERHUB_USERNAME }}/vite-app:latest
+            
+            # Run new container on port 8080 instead of 80
+            docker run -d --name vite-app -p 8080:80 --restart always ${{ secrets.DOCKERHUB_USERNAME }}/vite-app:latest
+            
+            echo "Deployment complete. Application is running on port 8080."
