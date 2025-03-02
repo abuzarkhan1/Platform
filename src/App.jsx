@@ -55,7 +55,7 @@ function App() {
             <p>Build, deploy, and scale your projects with our powerful development platform.</p>
             <div className="developer-info">
               <User size={18} />
-              <span>Developed by <span className="accent">Abuzar</span></span>
+              <span>Developed by <span className="accent">Abuzar Khan</span></span>
             </div>
             <div className="cta-buttons">
               <button className="primary-btn">Get Started</button>
