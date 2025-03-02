@@ -73,4 +73,4 @@ jobs:
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/vite-app:latest
             docker stop vite-app || true
             docker rm vite-app || true
-            docker run -d --name vite-app -p 80:80 --restart always ${{ secrets.DOCKERHUB_USERNAME }}/vite-app:latest
+            docker run -d --name vite-ap -p 80:80 --restart always ${{ secrets.DOCKERHUB_USERNAME }}/vite-app:latest
