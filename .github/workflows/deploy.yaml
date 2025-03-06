@@ -65,86 +65,17 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v3
-      
-      # Set up port forwarding for Kind cluster
-      - name: Setup Kind port forwarding
+
+      - name: Configure kubectl
         run: |
-          # Create a temporary kubeconfig file
-          echo "${{ secrets.KUBECONFIG }}" > kubeconfig.yaml
-          
-          # Start port forwarding in the background
-          # Kind runs on localhost with a specific port (46853 from your kubeconfig)
-          # Install socat to forward traffic between the localhost port and the GitHub runner
-          sudo apt-get update && sudo apt-get install -y socat
-          nohup socat TCP-LISTEN:46853,fork TCP:127.0.0.1:46853 &
-          
-          # Create a modified kubeconfig that points to the GitHub runner instead of localhost
-          sed -i 's/127.0.0.1:46853/localhost:46853/g' kubeconfig.yaml
-          
-          # Export the modified kubeconfig
-          export KUBECONFIG=$(pwd)/kubeconfig.yaml
-          echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
-          
-          # Test connection
-          kubectl --kubeconfig=$(pwd)/kubeconfig.yaml version
-      
-      # Deploy to Kubernetes
-      - name: Create K8s Deployment Files
+          echo "${{ secrets.KUBECONFIG_CONTENT }}" > kubeconfig.yaml
+          export KUBECONFIG=kubeconfig.yaml
+          kubectl version --client
+
+      - name: Deploy to Kubernetes
         run: |
-          # Create deployment.yaml
-          cat <<EOF > deployment.yaml
-          apiVersion: apps/v1
-          kind: Deployment
-          metadata:
-            name: vite-app
-            namespace: default
-          spec:
-            replicas: 1
-            selector:
-              matchLabels:
-                app: vite-app
-            template:
-              metadata:
-                labels:
-                  app: vite-app
-              spec:
-                containers:
-                - name: vite-app
-                  image: ${{ secrets.DOCKERHUB_USERNAME }}/vite-app:latest
-                  ports:
-                  - containerPort: 80
-          EOF
-          
-          # Create service.yaml
-          cat <<EOF > service.yaml
-          apiVersion: v1
-          kind: Service
-          metadata:
-            name: vite-app-service
-            namespace: default
-          spec:
-            selector:
-              app: vite-app
-            ports:
-            - port: 80
-              targetPort: 80
-            type: ClusterIP
-          EOF
-      
-      - name: Deploy to Kind Cluster
-        run: |
-          # Apply deployment
-          kubectl --kubeconfig=$(pwd)/kubeconfig.yaml apply -f deployment.yaml
-          
-          # Wait for deployment
-          kubectl --kubeconfig=$(pwd)/kubeconfig.yaml rollout status deployment/vite-app --timeout=120s
-          
-          # Apply service
-          kubectl --kubeconfig=$(pwd)/kubeconfig.yaml apply -f service.yaml
-          
-          # Get deployment status
-          kubectl --kubeconfig=$(pwd)/kubeconfig.yaml get pods -l app=vite-app
-          kubectl --kubeconfig=$(pwd)/kubeconfig.yaml get services vite-app-service
+          export KUBECONFIG=kubeconfig.yaml
+          kubectl set image deployment/vite-app vite-app=${{ secrets.DOCKERHUB_USERNAME }}/vite-app:latest --namespace=default
+          kubectl rollout status deployment/vite-app --namespace=default
+          kubectl expose deployment vite-app --type=LoadBalancer --port=80 --target-port=80 --name=vite-app-service --namespace=default || true
+          echo "Kubernetes deployment updated and exposed successfully."
