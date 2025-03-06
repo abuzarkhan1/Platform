@@ -65,17 +65,30 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Configure kubectl
+        
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+      
+      - name: Set up kubeconfig
         run: |
-          echo "${{ secrets.KUBECONFIG_CONTENT }}" > kubeconfig.yaml
-          export KUBECONFIG=kubeconfig.yaml
-          kubectl version --client
-
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+      
+      - name: Verify kubectl configuration
+        run: kubectl cluster-info
+      
       - name: Deploy to Kubernetes
         run: |
-          export KUBECONFIG=kubeconfig.yaml
           kubectl set image deployment/vite-app vite-app=${{ secrets.DOCKERHUB_USERNAME }}/vite-app:latest --namespace=default
           kubectl rollout status deployment/vite-app --namespace=default
-          kubectl expose deployment vite-app --type=LoadBalancer --port=80 --target-port=80 --name=vite-app-service --namespace=default || true
-          echo "Kubernetes deployment updated and exposed successfully"
+      
+      - name: Expose Service (if not already exposed)
+        run: |
+          kubectl get service vite-app-service --namespace=default || \
+          kubectl expose deployment/vite-app --type=LoadBalancer --port=80 --target-port=80 --name=vite-app-service --namespace=default
+      
+      - name: Get Service URL
+        run: |
+          echo "Service exposed at:"
+          kubectl get service vite-app-service --namespace=default -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
