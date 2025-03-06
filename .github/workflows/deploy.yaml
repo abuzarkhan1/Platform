@@ -78,4 +78,4 @@ jobs:
           kubectl set image deployment/vite-app vite-app=${{ secrets.DOCKERHUB_USERNAME }}/vite-app:latest --namespace=default
           kubectl rollout status deployment/vite-app --namespace=default
           kubectl expose deployment vite-app --type=LoadBalancer --port=80 --target-port=80 --name=vite-app-service --namespace=default || true
-          echo "Kubernetes deployment updated and exposed successfully."
+          echo "Kubernetes deployment updated and exposed successfully"
