@@ -59,29 +59,23 @@ jobs:
           cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/vite-app:latest
           cache-to: type=inline
 
-  deploy:
+  deploy-k8s:
     needs: dockerize
     runs-on: ubuntu-latest
     steps:
-      - name: SSH into Server and Deploy
-        uses: appleboy/ssh-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            # Check what's using port 80 (optional but helpful for debugging)
-            echo "Checking what's using port 80..."
-            sudo lsof -i :80 || true
-            
-            # Pull the latest image
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/vite-app:latest
-            
-            # Stop and remove existing container if it exists
-            docker stop vite-app || true
-            docker rm vite-app || true
-            
-            # Run new container on port 8080 instead of 80
-            docker run -d --name vite-app -p 80:80 --restart always ${{ secrets.DOCKERHUB_USERNAME }}/vite-app:latest
-            
-            echo "Deployment complete. Application is running on port 80."
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG_CONTENT }}" > kubeconfig.yaml
+          export KUBECONFIG=kubeconfig.yaml
+          kubectl version --client
+
+      - name: Deploy to Kubernetes
+        run: |
+          export KUBECONFIG=kubeconfig.yaml
+          kubectl set image deployment/vite-app vite-app=${{ secrets.DOCKERHUB_USERNAME }}/vite-app:latest --namespace=default
+          kubectl rollout status deployment/vite-app --namespace=default
+          kubectl expose deployment vite-app --type=LoadBalancer --port=80 --target-port=80 --name=vite-app-service --namespace=default || true
+          echo "Kubernetes deployment updated and exposed successfully."
