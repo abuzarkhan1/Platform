@@ -100,7 +100,7 @@ jobs:
 
   deploy:
     needs: dockerize
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
