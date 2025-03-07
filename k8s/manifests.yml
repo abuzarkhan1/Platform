@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: react-vite-container
-          image: abuzarkhan1/react-vite-app:latest  
+          image: abuzarkhan1/vite-app:latest  
           ports:
             - containerPort: 80
 ---
